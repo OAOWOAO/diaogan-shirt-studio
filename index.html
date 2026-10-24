@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f1e8">
+  <title>釣竿團服拼貼室</title>
+  <meta name="description" content="用手繪角色自由拼貼團服，依廠商 10×10 cm 與 25×25 cm 印刷範圍預覽。">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">釣竿企劃</p>
+      <h1>團服拼貼室</h1>
+    </div>
+    <button id="resetAll" class="text-button" type="button">全部重來</button>
+  </header>
+
+  <main class="app-shell">
+    <section class="asset-panel" aria-labelledby="assetsTitle">
+      <div class="panel-heading">
+        <div>
+          <span class="step">01</span>
+          <h2 id="assetsTitle">挑選角色</h2>
+        </div>
+        <p>點一下加入目前衣面，也可以直接拖進衣服。</p>
+      </div>
+      <div class="asset-categories" role="tablist" aria-label="圖案分類">
+        <button class="asset-category active" type="button" role="tab" aria-selected="true" data-category="original">角色</button>
+        <button class="asset-category" type="button" role="tab" aria-selected="false" data-category="xiaolai">小賴</button>
+      </div>
+      <div id="assetGrid" class="asset-grid"></div>
+    </section>
+
+    <section class="studio-panel" aria-labelledby="studioTitle">
+      <div class="studio-toolbar">
+        <div class="side-tabs" role="tablist" aria-label="衣服正反面">
+          <button class="side-tab active" data-side="front" role="tab" aria-selected="true">正面 · 左胸</button>
+          <button class="side-tab" data-side="back" role="tab" aria-selected="false">背面 · 大圖</button>
+        </div>
+        <div class="studio-actions">
+          <label class="guide-toggle">
+            <input id="safeToggle" type="checkbox">
+            <span>參考框</span>
+          </label>
+          <div class="history-actions" aria-label="編輯歷史">
+            <button id="undoBtn" class="icon-button" type="button" title="復原" aria-label="復原">↶</button>
+            <button id="redoBtn" class="icon-button" type="button" title="重做" aria-label="重做">↷</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="designCanvas" width="620" height="760" aria-label="衣服拼貼畫布"></canvas>
+        <div id="dropHint" class="drop-hint">把角色拖到這裡</div>
+      </div>
+
+      <div class="print-note">
+        <span id="zoneBadge" class="zone-badge">左胸 10 × 10 cm</span>
+        <span id="zoneStatus">位置參考用，衣服外觀並非精準比例</span>
+      </div>
+    </section>
+
+    <aside class="control-panel" aria-labelledby="controlTitle">
+      <div class="panel-heading compact">
+        <div>
+          <span class="step">02</span>
+          <h2 id="controlTitle">調整設計</h2>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>尺寸</legend>
+        <div class="segmented">
+          <button class="size-btn active" data-size="M" type="button">M</button>
+          <button class="size-btn" data-size="L" type="button">L</button>
+        </div>
+        <p id="sizeInfo" class="spec-note">衣長 69 · 胸寬 52 · 肩寬 46 · 袖長 20 cm</p>
+        <label class="range-row garment-size-row">
+          <span>衣服大小</span>
+          <input id="shirtScaleRange" type="range" min="70" max="130" value="100">
+          <span class="number-field"><input id="shirtScaleNumber" type="number" min="70" max="130" value="100" inputmode="numeric" aria-label="衣服顯示大小數值"><b>%</b></span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>衣服顏色</legend>
+        <div id="colorGrid" class="color-grid"></div>
+      </fieldset>
+
+      <fieldset id="selectionControls" disabled>
+        <legend>選中的角色</legend>
+        <div class="selection-color-row">
+          <span>線條顏色</span>
+          <div id="patternColorGrid" class="pattern-color-grid" aria-label="圖案線條顏色"></div>
+        </div>
+        <label class="range-row">
+          <span>大小</span>
+          <input id="scaleRange" type="range" min="20" max="220" value="100">
+          <span class="number-field"><input id="scaleNumber" type="number" min="20" max="220" value="100" inputmode="numeric" aria-label="大小數值"><b>%</b></span>
+        </label>
+        <label class="range-row">
+          <span>旋轉</span>
+          <input id="rotateRange" type="range" min="-180" max="180" value="0">
+          <span class="number-field"><input id="rotateNumber" type="number" min="-180" max="180" value="0" inputmode="numeric" aria-label="旋轉數值"><b>°</b></span>
+        </label>
+        <div class="object-actions">
+          <button id="backwardBtn" type="button">往下一層</button>
+          <button id="forwardBtn" type="button">往上一層</button>
+          <button id="duplicateBtn" type="button">複製</button>
+          <button id="deleteBtn" class="danger" type="button">刪除</button>
+        </div>
+        <p class="line-color-note">每個圖案都可以使用不同的線條顏色；手機可在畫布上雙指縮放。</p>
+      </fieldset>
+
+      <fieldset id="brushControls">
+        <legend>畫筆</legend>
+        <div class="tool-tabs" aria-label="操作工具">
+          <button class="tool-btn active" data-tool="select" type="button">移動角色</button>
+          <button class="tool-btn" data-tool="brush" type="button">畫筆</button>
+          <button class="tool-btn" data-tool="eraser" type="button">橡皮擦</button>
+        </div>
+        <div id="brushColorGrid" class="brush-color-grid" aria-label="畫筆顏色"></div>
+        <label class="range-row brush-size-row">
+          <span>粗細</span>
+          <input id="brushSizeRange" type="range" min="2" max="50" value="10">
+          <span class="number-field"><input id="brushSizeNumber" type="number" min="2" max="50" value="10" inputmode="numeric" aria-label="畫筆粗細數值"><b>px</b></span>
+        </label>
+        <button id="clearBrushBtn" class="clear-brush" type="button">清除目前衣面筆跡</button>
+        <p class="brush-note">畫筆只會顯示在印刷框內，可先上色，再把角色疊在上面。</p>
+      </fieldset>
+
+      <div class="download-actions">
+        <button id="downloadMockup" class="primary" type="button">下載正背面衣服預覽</button>
+      </div>
+      <p class="download-note">輸出正面與背面的分享用 PNG，不包含參考框與選取框。</p>
+      <p class="vendor-note">依廠商資料設定：35001-01 成人棉 T。M 與 L 的印刷框尺寸相同，衣服比例不同。</p>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js?v=22"></script>
+</body>
+</html>
