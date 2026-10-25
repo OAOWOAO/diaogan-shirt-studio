@@ -68,12 +68,13 @@ const toast = document.querySelector('#toast');
 const images = new Map();
 const tintedImages = new Map();
 const shirtImages = { front: {}, back: {} };
+function defaultViewZoom() { return window.matchMedia('(max-width: 740px)').matches ? 1.18 : 1.08; }
 const state = {
   side: 'front', size: 'M', shirtColor: COLORS[0][1], shirtScale: 1, showSafe: false,
   front: [], back: [], frontStrokes: [], backStrokes: [],
   tool: 'select', brushColor: '#ef6a3b', brushSize: 10,
   selectedId: null, history: [], future: [],
-  viewZoom: window.matchMedia('(max-width: 740px)').matches ? 1.4 : 1.08,
+  viewZoom: defaultViewZoom(),
   viewX: 0, viewY: 0
 };
 
@@ -398,7 +399,7 @@ function setViewZoom(nextZoom, anchor = {x:canvas.width/2,y:canvas.height/2}) {
   clampView(); render();
 }
 
-function centerView(zoom = window.matchMedia('(max-width: 740px)').matches ? 1.4 : 1.08) {
+function centerView(zoom = defaultViewZoom()) {
   state.viewZoom = Math.max(VIEW_MIN,Math.min(VIEW_MAX,zoom));
   state.viewX = canvas.width*(1-state.viewZoom)/2;
   state.viewY = canvas.height*(1-state.viewZoom)/2;
@@ -658,6 +659,12 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();document.querySelector('#deleteBtn').click();return;}
   const step=e.shiftKey?10:2; const moves={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]};
   if(moves[e.key]){e.preventDefault();const before=snapshot();item.x+=moves[e.key][0];item.y+=moves[e.key][1];pushHistory(before);render();saveLocal();}
+});
+
+window.addEventListener('pageshow',()=>{
+  state.selectedId=null;
+  centerView();
+  syncSelectionControls();
 });
 
 restoreLocal(); centerView(); loadAssets(); buildColors(); syncControls(); render();

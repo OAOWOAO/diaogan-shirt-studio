@@ -124,6 +124,8 @@ h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
   display: grid;
   place-items: center;
   overflow: hidden;
+  overscroll-behavior: contain;
+  contain: layout paint;
   border-radius: 18px;
   background:
     linear-gradient(45deg, #efecE4 25%, transparent 25%),
