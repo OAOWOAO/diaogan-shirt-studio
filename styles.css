@@ -177,7 +177,7 @@ legend { padding: 0; margin-bottom: 10px; font-size: 13px; font-weight: 800; }
 .brush-color-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .brush-swatch { width: 27px; height: 27px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #bdb8ad; cursor: pointer; }
 .brush-swatch.active { box-shadow: 0 0 0 3px var(--accent); }
-.brush-size-row { margin-bottom: 8px; }
+.brush-size-row, .brush-opacity-row { margin-bottom: 8px; }
 .clear-brush { width: 100%; border: 1px solid var(--line); background: white; border-radius: 9px; padding: 8px; font-size: 11px; font-weight: 750; cursor: pointer; }
 .brush-note { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .check-row { display: flex; align-items: center; gap: 9px; padding: 15px 0; font-size: 13px; font-weight: 700; }
