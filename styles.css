@@ -104,12 +104,12 @@ h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
 .asset-card img { width: 100%; height: calc(100% - 16px); object-fit: contain; pointer-events: none; }
 .asset-card span { display: block; overflow: hidden; color: var(--muted); font-size: 10px; font-weight: 750; line-height: 14px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 
-.studio-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 10px; }
-.studio-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.studio-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 9px 12px; align-items: center; margin-bottom: 10px; }
+.studio-actions { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .view-controls { display: flex; align-items: center; gap: 5px; padding: 4px; border-radius: 12px; background: #ece8dd; }
 .view-controls .icon-button { width: 34px; height: 34px; border: 0; font-size: 19px; }
 .view-controls output { min-width: 44px; color: var(--ink); font-size: 11px; font-weight: 850; text-align: center; font-variant-numeric: tabular-nums; }
-.fit-button { min-height: 34px; padding: 0 9px; border: 0; border-radius: 9px; background: white; font-size: 11px; font-weight: 800; cursor: pointer; }
+.fit-button { min-height: 34px; padding: 0 9px; border: 0; border-radius: 9px; background: white; font-size: 11px; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .guide-toggle { display: flex; align-items: center; gap: 6px; min-height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 11px; background: white; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .guide-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .side-tabs, .segmented { display: flex; padding: 4px; gap: 4px; background: #ece8dd; border-radius: 13px; }
