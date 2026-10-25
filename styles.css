@@ -105,7 +105,11 @@ h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
 .asset-card span { display: block; overflow: hidden; color: var(--muted); font-size: 10px; font-weight: 750; line-height: 14px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 
 .studio-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 10px; }
-.studio-actions { display: flex; align-items: center; gap: 8px; }
+.studio-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.view-controls { display: flex; align-items: center; gap: 5px; padding: 4px; border-radius: 12px; background: #ece8dd; }
+.view-controls .icon-button { width: 34px; height: 34px; border: 0; font-size: 19px; }
+.view-controls output { min-width: 44px; color: var(--ink); font-size: 11px; font-weight: 850; text-align: center; font-variant-numeric: tabular-nums; }
+.fit-button { min-height: 34px; padding: 0 9px; border: 0; border-radius: 9px; background: white; font-size: 11px; font-weight: 800; cursor: pointer; }
 .guide-toggle { display: flex; align-items: center; gap: 6px; min-height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 11px; background: white; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .guide-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .side-tabs, .segmented { display: flex; padding: 4px; gap: 4px; background: #ece8dd; border-radius: 13px; }
@@ -132,6 +136,7 @@ h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
 #designCanvas { display: block; width: min(100%, 620px); height: auto; max-height: 69vh; touch-action: none; }
 .drop-hint { position: absolute; inset: 18px; border: 2px dashed var(--accent); border-radius: 15px; display: none; place-items: center; color: var(--accent-dark); font-weight: 850; background: rgba(255,253,248,.78); pointer-events: none; }
 .canvas-wrap.dragover .drop-hint { display: grid; }
+.canvas-help { margin: 9px 4px 0; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
 
 .print-note { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 38px; padding-top: 10px; color: var(--muted); font-size: 12px; }
 .zone-badge { border-radius: 999px; padding: 5px 10px; background: #edf1e6; color: #425236; font-weight: 800; }
@@ -207,8 +212,9 @@ legend { padding: 0; margin-bottom: 10px; font-size: 13px; font-weight: 800; }
   #designCanvas { max-height: none; }
   .side-tab { padding: 9px 10px; font-size: 12px; }
   .studio-toolbar { flex-wrap: wrap; }
-  .studio-actions { width: 100%; justify-content: space-between; }
-  .guide-toggle { flex: 1; justify-content: center; }
+  .studio-actions { width: 100%; display: grid; grid-template-columns: 1fr auto; }
+  .view-controls { grid-column: 1 / -1; justify-content: center; }
+  .guide-toggle { justify-content: center; }
   .print-note { flex-wrap: wrap; text-align: center; }
 }
 

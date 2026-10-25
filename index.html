@@ -40,6 +40,12 @@
           <button class="side-tab" data-side="back" role="tab" aria-selected="false">背面 · 大圖</button>
         </div>
         <div class="studio-actions">
+          <div class="view-controls" aria-label="畫布檢視大小">
+            <button id="zoomOutBtn" class="icon-button" type="button" aria-label="縮小畫布">−</button>
+            <output id="viewZoomValue" aria-live="polite">100%</output>
+            <button id="zoomInBtn" class="icon-button" type="button" aria-label="放大畫布">＋</button>
+            <button id="fitViewBtn" class="fit-button" type="button">置中</button>
+          </div>
           <label class="guide-toggle">
             <input id="safeToggle" type="checkbox">
             <span>參考框</span>
@@ -55,6 +61,8 @@
         <canvas id="designCanvas" width="620" height="760" aria-label="衣服拼貼畫布"></canvas>
         <div id="dropHint" class="drop-hint">把角色拖到這裡</div>
       </div>
+
+      <p class="canvas-help">拖曳空白處移動畫布；在空白處雙指可縮放畫布，在角色上雙指則調整角色大小。</p>
 
       <div class="print-note">
         <span id="zoneBadge" class="zone-badge">左胸 10 × 10 cm</span>
@@ -128,7 +136,7 @@
           <span class="number-field"><input id="brushSizeNumber" type="number" min="2" max="50" value="10" inputmode="numeric" aria-label="畫筆粗細數值"><b>px</b></span>
         </label>
         <button id="clearBrushBtn" class="clear-brush" type="button">清除目前衣面筆跡</button>
-        <p class="brush-note">畫筆只會顯示在印刷框內，可先上色，再把角色疊在上面。</p>
+        <p class="brush-note">畫筆可畫滿整件衣服，不受 10 × 10 或 25 × 25 參考框限制；筆跡仍只會顯示在衣服範圍內。</p>
       </fieldset>
 
       <div class="download-actions">
@@ -140,6 +148,6 @@
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=22"></script>
+  <script src="./app.js?v=23"></script>
 </body>
 </html>

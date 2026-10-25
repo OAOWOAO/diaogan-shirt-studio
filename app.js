@@ -72,7 +72,9 @@ const state = {
   side: 'front', size: 'M', shirtColor: COLORS[0][1], shirtScale: 1, showSafe: false,
   front: [], back: [], frontStrokes: [], backStrokes: [],
   tool: 'select', brushColor: '#ef6a3b', brushSize: 10,
-  selectedId: null, history: [], future: []
+  selectedId: null, history: [], future: [],
+  viewZoom: window.matchMedia('(max-width: 740px)').matches ? 1.4 : 1.08,
+  viewX: 0, viewY: 0
 };
 
 let drag = null;
@@ -83,6 +85,8 @@ let resetTimer = null;
 let activeAssetCategory = 'original';
 const activePointers = new Map();
 let pinch = null;
+const VIEW_MIN = .75;
+const VIEW_MAX = 2.8;
 
 function uid() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
 function currentItems() { return state[state.side]; }
@@ -256,16 +260,6 @@ function drawGarment(target = ctx) {
   if (shirt?.naturalWidth) target.drawImage(shirt, x, g.top, g.width, g.height);
 }
 
-function syncGarmentBackground() {
-  const g = garmentGeometry();
-  const colourIndex = Math.max(0, COLORS.findIndex(([, value]) => value === state.shirtColor));
-  const shirt = shirtImages[state.side].colours?.[colourIndex];
-  canvas.style.backgroundImage = shirt?.src ? `url("${shirt.src}")` : 'none';
-  canvas.style.backgroundRepeat = 'no-repeat';
-  canvas.style.backgroundSize = `${g.width / canvas.width * 100}% ${g.height / canvas.height * 100}%`;
-  canvas.style.backgroundPosition = `50% ${g.top / (canvas.height - g.height) * 100}%`;
-}
-
 function itemMetrics(item) {
   const img = images.get(item.asset);
   if (!img || !img.naturalWidth) return { w: 80, h: 80 };
@@ -291,14 +285,10 @@ function drawItem(item, target = ctx, offset = {x:0,y:0}, ratio = 1) {
   target.drawImage(tinted, -m.w / 2, -m.h / 2, m.w, m.h); target.restore();
 }
 
-function drawStrokes(target = ctx, zone = safeZone(), offset = {x:0,y:0}, ratio = 1) {
+function drawStrokes(target = ctx, offset = {x:0,y:0}, ratio = 1) {
   const layer = document.createElement('canvas');
   layer.width = target.canvas.width; layer.height = target.canvas.height;
   const lc = layer.getContext('2d');
-  lc.save();
-  lc.beginPath();
-  lc.rect((zone.x-zone.w/2-offset.x)*ratio,(zone.y-zone.h/2-offset.y)*ratio,zone.w*ratio,zone.h*ratio);
-  lc.clip();
   currentStrokes().forEach(stroke => {
     if (!stroke.points.length) return;
     lc.save();
@@ -313,7 +303,21 @@ function drawStrokes(target = ctx, zone = safeZone(), offset = {x:0,y:0}, ratio 
     if(stroke.points.length===1){ const p=stroke.points[0]; lc.lineTo((p.x-offset.x)*ratio+.01,(p.y-offset.y)*ratio+.01); }
     lc.stroke(); lc.restore();
   });
-  lc.restore(); target.drawImage(layer,0,0);
+  const g = garmentGeometry();
+  const shirt = selectedShirtImage(state.side);
+  if (shirt?.naturalWidth) {
+    lc.save();
+    lc.globalCompositeOperation = 'destination-in';
+    lc.drawImage(
+      shirt,
+      (g.cx - g.width / 2 - offset.x) * ratio,
+      (g.top - offset.y) * ratio,
+      g.width * ratio,
+      g.height * ratio
+    );
+    lc.restore();
+  }
+  target.drawImage(layer,0,0);
 }
 
 function itemCorners(item) {
@@ -326,20 +330,23 @@ function itemInsideZone(item, zone = safeZone()) {
 }
 
 function drawSelection(item) {
-  const {w,h} = itemMetrics(item); const good = itemInsideZone(item);
+  const {w,h} = itemMetrics(item);
   ctx.save(); ctx.translate(item.x, item.y); ctx.rotate(item.rotation*Math.PI/180);
-  ctx.strokeStyle = good ? '#ef6a3b' : '#d13f32'; ctx.lineWidth = 2; ctx.setLineDash([7,5]);
+  ctx.strokeStyle = '#ef6a3b'; ctx.lineWidth = 2; ctx.setLineDash([7,5]);
   ctx.strokeRect(-w/2-7,-h/2-7,w+14,h+14); ctx.setLineDash([]);
-  ctx.fillStyle = good ? '#ef6a3b' : '#d13f32';
+  ctx.fillStyle = '#ef6a3b';
   for (const [x,y] of [[-w/2-7,-h/2-7],[w/2+7,-h/2-7],[w/2+7,h/2+7],[-w/2-7,h/2+7]]) { ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill(); }
   ctx.restore();
 }
 
 function render(options = {}) {
-  syncGarmentBackground();
+  ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  ctx.setTransform(state.viewZoom,0,0,state.viewZoom,state.viewX,state.viewY);
   const zone = safeZone();
-  drawStrokes(ctx, zone);
+  drawGarment(ctx);
+  drawStrokes(ctx);
   currentItems().forEach(item => drawItem(item));
   if (state.showSafe && !options.clean) {
     ctx.save(); ctx.strokeStyle = 'rgba(239,106,59,.85)'; ctx.lineWidth = 2; ctx.setLineDash([8,7]);
@@ -348,6 +355,8 @@ function render(options = {}) {
     ctx.font = '700 13px sans-serif'; ctx.fillStyle = '#b94320'; ctx.fillText(`${zone.label} · 示意`,zone.x-zone.w/2,zone.y-zone.h/2-10); ctx.restore();
   }
   const selected = selectedItem(); if (selected && !options.clean) drawSelection(selected);
+  ctx.restore();
+  document.querySelector('#viewZoomValue').textContent = `${Math.round(state.viewZoom * 100)}%`;
   updateZoneStatus();
 }
 
@@ -361,6 +370,39 @@ function addAsset(asset, point = null) {
 function canvasPoint(event) {
   const r = canvas.getBoundingClientRect();
   return { x: (event.clientX-r.left) * canvas.width/r.width, y: (event.clientY-r.top) * canvas.height/r.height };
+}
+
+function workspacePoint(point) {
+  return { x: (point.x-state.viewX)/state.viewZoom, y: (point.y-state.viewY)/state.viewZoom };
+}
+
+function pointerCenter(points = [...activePointers.values()]) {
+  if (!points.length) return {x:canvas.width/2,y:canvas.height/2};
+  return {x:points.reduce((sum,p)=>sum+p.x,0)/points.length,y:points.reduce((sum,p)=>sum+p.y,0)/points.length};
+}
+
+function clampView() {
+  const visible = 90;
+  const scaledW = canvas.width * state.viewZoom;
+  const scaledH = canvas.height * state.viewZoom;
+  state.viewX = Math.min(canvas.width-visible, Math.max(visible-scaledW, state.viewX));
+  state.viewY = Math.min(canvas.height-visible, Math.max(visible-scaledH, state.viewY));
+}
+
+function setViewZoom(nextZoom, anchor = {x:canvas.width/2,y:canvas.height/2}) {
+  const oldZoom = state.viewZoom;
+  const anchorWorld = {x:(anchor.x-state.viewX)/oldZoom,y:(anchor.y-state.viewY)/oldZoom};
+  state.viewZoom = Math.max(VIEW_MIN,Math.min(VIEW_MAX,nextZoom));
+  state.viewX = anchor.x-anchorWorld.x*state.viewZoom;
+  state.viewY = anchor.y-anchorWorld.y*state.viewZoom;
+  clampView(); render();
+}
+
+function centerView(zoom = window.matchMedia('(max-width: 740px)').matches ? 1.4 : 1.08) {
+  state.viewZoom = Math.max(VIEW_MIN,Math.min(VIEW_MAX,zoom));
+  state.viewX = canvas.width*(1-state.viewZoom)/2;
+  state.viewY = canvas.height*(1-state.viewZoom)/2;
+  clampView(); render();
 }
 
 function pointerDistance(points = [...activePointers.values()]) {
@@ -380,22 +422,25 @@ function hitTest(point) {
 }
 
 canvas.addEventListener('pointerdown', event => {
-  const point=canvasPoint(event);
+  const screenPoint=canvasPoint(event);
+  const point=workspacePoint(screenPoint);
   if(state.tool === 'brush' || state.tool === 'eraser'){
     if(!event.isPrimary || drag?.stroke) return;
-    const zone=safeZone();
-    const inside=point.x>=zone.x-zone.w/2&&point.x<=zone.x+zone.w/2&&point.y>=zone.y-zone.h/2&&point.y<=zone.y+zone.h/2;
-    if(!inside){showToast('請從印刷框內開始畫');return;}
     const before=snapshot();
     const stroke={mode:state.tool==='eraser'?'erase':'draw',color:state.brushColor,size:state.brushSize,points:[point]};
     currentStrokes().push(stroke); drag={stroke,before,pointerId:event.pointerId}; canvas.setPointerCapture(event.pointerId); render(); return;
   }
-  activePointers.set(event.pointerId,point);
+  activePointers.set(event.pointerId,screenPoint);
   canvas.setPointerCapture(event.pointerId);
 
-  if(activePointers.size===2 && selectedItem()){
-    const item=selectedItem();
-    pinch={id:item.id,startDistance:pointerDistance(),startScale:item.scale,before:drag?.before||snapshot()};
+  if(activePointers.size===2){
+    const item=drag?.id ? selectedItem() : null;
+    if(item && item.id===drag.id){
+      pinch={kind:'item',id:item.id,startDistance:pointerDistance(),startScale:item.scale,before:drag.before||snapshot()};
+    }else{
+      const center=pointerCenter();
+      pinch={kind:'view',startDistance:pointerDistance(),startZoom:state.viewZoom,anchor:workspacePoint(center)};
+    }
     drag=null;
     return;
   }
@@ -403,33 +448,49 @@ canvas.addEventListener('pointerdown', event => {
   if(activePointers.size>1) return;
   const item=hitTest(point);
   state.selectedId=item?.id || null; syncSelectionControls(); render();
-  if (!item) return;
+  if (!item){drag={view:true,startScreen:screenPoint,startX:state.viewX,startY:state.viewY,pointerId:event.pointerId};return;}
   drag={id:item.id,dx:point.x-item.x,dy:point.y-item.y,before:snapshot(),pointerId:event.pointerId};
 });
 canvas.addEventListener('pointermove', event => {
   if(activePointers.has(event.pointerId)) activePointers.set(event.pointerId,canvasPoint(event));
   if(pinch){
-    const item=selectedItem();
-    if(!item || item.id!==pinch.id || activePointers.size<2) return;
+    if(activePointers.size<2) return;
     const ratio=pointerDistance()/Math.max(1,pinch.startDistance);
-    item.scale=Math.max(.2,Math.min(2.2,pinch.startScale*ratio));
-    syncSelectionControls(); render(); return;
+    if(pinch.kind==='item'){
+      const item=selectedItem();
+      if(!item || item.id!==pinch.id) return;
+      item.scale=Math.max(.2,Math.min(2.2,pinch.startScale*ratio));
+      syncSelectionControls(); render(); return;
+    }
+    const center=pointerCenter();
+    state.viewZoom=Math.max(VIEW_MIN,Math.min(VIEW_MAX,pinch.startZoom*ratio));
+    state.viewX=center.x-pinch.anchor.x*state.viewZoom;
+    state.viewY=center.y-pinch.anchor.y*state.viewZoom;
+    clampView(); render(); return;
   }
   if (!drag) return;
   if(event.pointerId!==drag.pointerId) return;
-  if(drag.stroke){drag.stroke.points.push(canvasPoint(event));render();return;}
+  if(drag.stroke){drag.stroke.points.push(workspacePoint(canvasPoint(event)));render();return;}
+  if(drag.view){
+    const screen=canvasPoint(event);
+    state.viewX=drag.startX+(screen.x-drag.startScreen.x);
+    state.viewY=drag.startY+(screen.y-drag.startScreen.y);
+    clampView(); render(); return;
+  }
   const item=selectedItem(); if (!item) return;
-  const point=canvasPoint(event); item.x=point.x-drag.dx; item.y=point.y-drag.dy; render();
+  const point=workspacePoint(canvasPoint(event)); item.x=point.x-drag.dx; item.y=point.y-drag.dy; render();
 });
 function finishPointer(event) {
   activePointers.delete(event.pointerId);
   if(canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   if(pinch){
-    pushHistory(pinch.before); pinch=null; drag=null;
+    if(pinch.kind==='item')pushHistory(pinch.before);
+    pinch=null; drag=null;
     syncSelectionControls(); saveLocal(); updateZoneStatus(); return;
   }
   if (!drag || event.pointerId!==drag.pointerId) return;
-  pushHistory(drag.before); drag=null; saveLocal(); updateZoneStatus();
+  if(drag.before)pushHistory(drag.before);
+  drag=null; saveLocal(); updateZoneStatus();
 }
 canvas.addEventListener('pointerup',finishPointer);
 canvas.addEventListener('pointercancel',finishPointer);
@@ -438,7 +499,7 @@ canvasWrap.addEventListener('dragover', e => { e.preventDefault(); canvasWrap.cl
 canvasWrap.addEventListener('dragleave', () => canvasWrap.classList.remove('dragover'));
 canvasWrap.addEventListener('drop', e => {
   e.preventDefault(); canvasWrap.classList.remove('dragover');
-  const key=e.dataTransfer.getData('text/plain'); if (ASSETS.some(a=>a[0]===key)) addAsset(key,canvasPoint(e));
+  const key=e.dataTransfer.getData('text/plain'); if (ASSETS.some(a=>a[0]===key)) addAsset(key,workspacePoint(canvasPoint(e)));
 });
 
 function updateSelected(mutator) {
@@ -466,7 +527,7 @@ function syncControls() {
   document.querySelectorAll('.brush-swatch').forEach(b=>b.classList.toggle('active',b.dataset.brushColor===state.brushColor));
   brushSizeRange.value=state.brushSize; brushSizeNumber.value=state.brushSize;
   shirtScaleRange.value=Math.round(state.shirtScale*100); shirtScaleNumber.value=shirtScaleRange.value;
-  canvas.style.cursor=state.tool==='select'?'default':state.tool==='brush'?'crosshair':'cell';
+  canvas.style.cursor=state.tool==='select'?'grab':state.tool==='brush'?'crosshair':'cell';
   document.querySelector('#safeToggle').checked=state.showSafe;
   const s=SIZE_SPECS[state.size]; document.querySelector('#sizeInfo').textContent=`衣長 ${s.length} · 胸寬 ${s.chest} · 肩寬 ${s.shoulder} · 袖長 ${s.sleeve} cm`;
   document.querySelector('#zoneBadge').textContent=state.side==='front'?'左胸 10 × 10 cm':'背面 25 × 25 cm';
@@ -490,7 +551,7 @@ function renderSidePreview(side) {
   const out=document.createElement('canvas'); out.width=canvas.width; out.height=canvas.height;
   const outCtx=out.getContext('2d');
   drawGarment(outCtx);
-  drawStrokes(outCtx,safeZone());
+  drawStrokes(outCtx);
   currentItems().forEach(item=>drawItem(item,outCtx));
   state.side=previousSide;
   return out;
@@ -528,6 +589,9 @@ async function downloadMockup() {
 document.querySelectorAll('.side-tab').forEach(b=>b.addEventListener('click',()=>{state.side=b.dataset.side;state.selectedId=null;syncControls();render();saveLocal();}));
 document.querySelectorAll('.size-btn').forEach(b=>b.addEventListener('click',()=>{if(state.size===b.dataset.size)return;pushHistory();state.size=b.dataset.size;syncControls();render();saveLocal();}));
 document.querySelector('#safeToggle').addEventListener('change',e=>{state.showSafe=e.target.checked;render();saveLocal();});
+document.querySelector('#zoomOutBtn').addEventListener('click',()=>setViewZoom(state.viewZoom-.2));
+document.querySelector('#zoomInBtn').addEventListener('click',()=>setViewZoom(state.viewZoom+.2));
+document.querySelector('#fitViewBtn').addEventListener('click',()=>centerView());
 document.querySelectorAll('.tool-btn').forEach(b=>b.addEventListener('click',()=>{state.tool=b.dataset.tool;state.selectedId=null;syncControls();render();saveLocal();}));
 document.querySelector('#undoBtn').addEventListener('click',undo);
 document.querySelector('#redoBtn').addEventListener('click',redo);
@@ -596,4 +660,4 @@ window.addEventListener('keydown',e=>{
   if(moves[e.key]){e.preventDefault();const before=snapshot();item.x+=moves[e.key][0];item.y+=moves[e.key][1];pushHistory(before);render();saveLocal();}
 });
 
-restoreLocal(); loadAssets(); buildColors(); syncControls(); render();
+restoreLocal(); centerView(); loadAssets(); buildColors(); syncControls(); render();
