@@ -61,6 +61,8 @@ const scaleNumber = document.querySelector('#scaleNumber');
 const rotateNumber = document.querySelector('#rotateNumber');
 const brushSizeRange = document.querySelector('#brushSizeRange');
 const brushSizeNumber = document.querySelector('#brushSizeNumber');
+const brushOpacityRange = document.querySelector('#brushOpacityRange');
+const brushOpacityNumber = document.querySelector('#brushOpacityNumber');
 const shirtScaleRange = document.querySelector('#shirtScaleRange');
 const shirtScaleNumber = document.querySelector('#shirtScaleNumber');
 const toast = document.querySelector('#toast');
@@ -72,7 +74,7 @@ function defaultViewZoom() { return window.matchMedia('(max-width: 740px)').matc
 const state = {
   side: 'front', size: 'M', shirtColor: COLORS[0][1], shirtScale: 1, showSafe: false,
   front: [], back: [], frontStrokes: [], backStrokes: [],
-  tool: 'select', brushColor: '#ef6a3b', brushSize: 10,
+  tool: 'select', brushColor: '#ef6a3b', brushSize: 10, brushOpacity: 100,
   selectedId: null, history: [], future: [],
   viewZoom: defaultViewZoom(),
   viewX: 0, viewY: 0
@@ -99,7 +101,8 @@ function saveLocal() {
     side: state.side, size: state.size, shirtColor: state.shirtColor, shirtScale: state.shirtScale,
     showSafe: state.showSafe, safeGuideVersion: 2,
     front: state.front, back: state.back, frontStrokes: state.frontStrokes,
-    backStrokes: state.backStrokes, tool: state.tool, brushColor: state.brushColor, brushSize: state.brushSize
+    backStrokes: state.backStrokes, tool: state.tool, brushColor: state.brushColor,
+    brushSize: state.brushSize, brushOpacity: state.brushOpacity
   };
   localStorage.setItem('diaogan-shirt-studio-v1', JSON.stringify(compact));
 }
@@ -113,6 +116,7 @@ function restoreLocal() {
       shirtScale: Number.isFinite(saved.shirtScale) ? saved.shirtScale : 1,
       frontStrokes: saved.frontStrokes || [], backStrokes: saved.backStrokes || [],
       tool: saved.tool || 'select', brushColor: saved.brushColor || '#ef6a3b', brushSize: saved.brushSize || 10,
+      brushOpacity: Number.isFinite(saved.brushOpacity) ? Math.max(1, Math.min(100, saved.brushOpacity)) : 100,
       selectedId: null, history: [], future: []
     });
     [...state.front, ...state.back].forEach(item => { if (!item.lineColor) item.lineColor = '#111111'; });
@@ -294,6 +298,7 @@ function drawStrokes(target = ctx, offset = {x:0,y:0}, ratio = 1) {
     if (!stroke.points.length) return;
     lc.save();
     lc.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
+    lc.globalAlpha = stroke.mode === 'erase' ? 1 : (Number.isFinite(stroke.opacity) ? stroke.opacity : 1);
     lc.strokeStyle = stroke.color; lc.lineWidth = stroke.size * ratio;
     lc.lineCap = 'round'; lc.lineJoin = 'round';
     lc.beginPath();
@@ -428,7 +433,13 @@ canvas.addEventListener('pointerdown', event => {
   if(state.tool === 'brush' || state.tool === 'eraser'){
     if(!event.isPrimary || drag?.stroke) return;
     const before=snapshot();
-    const stroke={mode:state.tool==='eraser'?'erase':'draw',color:state.brushColor,size:state.brushSize,points:[point]};
+    const stroke={
+      mode:state.tool==='eraser'?'erase':'draw',
+      color:state.brushColor,
+      size:state.brushSize,
+      opacity:state.tool==='eraser'?1:state.brushOpacity/100,
+      points:[point]
+    };
     currentStrokes().push(stroke); drag={stroke,before,pointerId:event.pointerId}; canvas.setPointerCapture(event.pointerId); render(); return;
   }
   activePointers.set(event.pointerId,screenPoint);
@@ -527,6 +538,7 @@ function syncControls() {
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('active',b.dataset.tool===state.tool));
   document.querySelectorAll('.brush-swatch').forEach(b=>b.classList.toggle('active',b.dataset.brushColor===state.brushColor));
   brushSizeRange.value=state.brushSize; brushSizeNumber.value=state.brushSize;
+  brushOpacityRange.value=state.brushOpacity; brushOpacityNumber.value=state.brushOpacity;
   shirtScaleRange.value=Math.round(state.shirtScale*100); shirtScaleNumber.value=shirtScaleRange.value;
   canvas.style.cursor=state.tool==='select'?'grab':state.tool==='brush'?'crosshair':'cell';
   document.querySelector('#safeToggle').checked=state.showSafe;
@@ -653,6 +665,19 @@ bindDirectNumber(shirtScaleNumber,shirtScaleRange,70,130,value=>{state.shirtScal
 brushSizeRange.addEventListener('input',()=>{state.brushSize=Number(brushSizeRange.value);brushSizeNumber.value=brushSizeRange.value;saveLocal();});
 brushSizeNumber.addEventListener('input',()=>{if(brushSizeNumber.value==='')return;state.brushSize=Math.max(2,Math.min(50,Number(brushSizeNumber.value)));brushSizeRange.value=state.brushSize;saveLocal();});
 brushSizeNumber.addEventListener('change',()=>{brushSizeNumber.value=state.brushSize;});
+
+brushOpacityRange.addEventListener('input',()=>{
+  state.brushOpacity=Number(brushOpacityRange.value);
+  brushOpacityNumber.value=brushOpacityRange.value;
+  saveLocal();
+});
+brushOpacityNumber.addEventListener('input',()=>{
+  if(brushOpacityNumber.value==='')return;
+  state.brushOpacity=Math.max(1,Math.min(100,Number(brushOpacityNumber.value)));
+  brushOpacityRange.value=state.brushOpacity;
+  saveLocal();
+});
+brushOpacityNumber.addEventListener('change',()=>{brushOpacityNumber.value=state.brushOpacity;});
 
 window.addEventListener('keydown',e=>{
   const item=selectedItem(); if(!item)return;
