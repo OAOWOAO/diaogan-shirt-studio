@@ -135,8 +135,13 @@
           <input id="brushSizeRange" type="range" min="2" max="50" value="10">
           <span class="number-field"><input id="brushSizeNumber" type="number" min="2" max="50" value="10" inputmode="numeric" aria-label="畫筆粗細數值"><b>px</b></span>
         </label>
+        <label class="range-row brush-opacity-row">
+          <span>透明度</span>
+          <input id="brushOpacityRange" type="range" min="1" max="100" value="100">
+          <span class="number-field"><input id="brushOpacityNumber" type="number" min="1" max="100" value="100" inputmode="numeric" aria-label="畫筆透明度數值"><b>%</b></span>
+        </label>
         <button id="clearBrushBtn" class="clear-brush" type="button">清除目前衣面筆跡</button>
-        <p class="brush-note">畫筆可畫滿整件衣服，不受 10 × 10 或 25 × 25 參考框限制；筆跡仍只會顯示在衣服範圍內。</p>
+        <p class="brush-note">透明度只套用到新畫的筆跡；橡皮擦仍會完整擦除。畫筆可畫滿整件衣服，筆跡只會顯示在衣服範圍內。</p>
       </fieldset>
 
       <div class="download-actions">
@@ -148,6 +153,6 @@
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=25"></script>
+  <script src="./app.js?v=26"></script>
 </body>
 </html>
